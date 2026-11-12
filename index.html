@@ -2247,6 +2247,7 @@ async function netInit() {
   try {
     NET.sb = window.supabase.createClient(cfg.url, cfg.anon, { auth: { persistSession: false } });
     NET.on = true;
+    if (ROLE && !ROLE.token) setRole(null);
     if (ROLE && ROLE.token) { try { const me = await rpc('hb_me', { p_token: ROLE.token }); if (me) ROLE = Object.assign(me, { token: ROLE.token }); else setRole(null); } catch (e) { } }
     await netLoad();
     if (!NET.started && isAdmin()) await commit();
