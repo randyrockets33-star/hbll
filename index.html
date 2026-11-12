@@ -1434,9 +1434,11 @@ function findGame(id) { if (/^fr\d/.test(id)) return (L.fr || []).find(g => g.id
 function pClubs() {
   const exp = S.exp;
   return `<section class="hero" style="min-height:0"><div class="bg" style="background-image:url(img/lg-look.jpg);left:45%;background-position:center 20%"></div><div class="wrap" style="padding-block:60px 46px"><div class="kick">Division A · ${TEAMS.length} founding clubs</div><h1 style="font-size:clamp(38px,6vw,70px)">The clubs</h1><p class="lead" style="margin-bottom:0">Pick any club to see its roster, lines, training, injuries and farm system. Take one over as GM to make the calls yourself.</p></div></section>
-  <section class="sec"><div class="wrap">${exp.length ? `<div class="sh"><div><div class="lbl">${exp.length} of 30 filled</div><h2>Division B</h2></div></div><div class="grid g4" style="margin-bottom:40px">${exp.map(clubCard).join('')}</div>` : ''}
-  <div class="sh"><div><div class="lbl">Division A</div><h2>Founding clubs</h2></div><div class="row"><select id="csort" aria-label="Sort clubs"><option value="t">Sort by table position</option><option value="a">Sort A to Z</option><option value="o">Sort by team rating</option></select></div></div>
-  <div class="grid g4" id="cgrid">${clubsSorted('t').map(clubCard).join('')}</div></div></section>`;
+  <section class="sec"><div class="wrap">
+  <div class="sh"><div><div class="lbl">Division A · founding clubs</div><h2>Division A</h2></div><div class="row"><select id="csort" aria-label="Sort clubs"><option value="t">Sort by table position</option><option value="a">Sort A to Z</option><option value="o">Sort by team rating</option></select></div></div>
+  <div class="grid g4" id="cgrid" style="margin-bottom:44px">${clubsSorted('t').map(clubCard).join('')}</div>
+  ${Object.entries(exp.reduce((m, t) => { const dv = (t.div || 'B').toUpperCase(); (m[dv] = m[dv] || []).push(t); return m; }, {})).sort((a, b) => a[0].localeCompare(b[0])).map(([dv, ts]) => `<div class="sh"><div><div class="lbl">${ts.length} of 30 filled</div><h2>Division ${esc(dv)}</h2></div></div><div class="grid g4" style="margin-bottom:44px">${ts.slice().sort((x, y) => x.city.localeCompare(y.city)).map(clubCard).join('')}</div>`).join('')}
+  </div></section>`;
 }
 function clubsSorted(k) { const a = TEAMS.slice(); if (k === 'a') a.sort((x, y) => x.city.localeCompare(y.city)); else if (k === 'o') a.sort((x, y) => teamOvr(getClub(y.code)) - teamOvr(getClub(x.code))); else a.sort((x, y) => rankOf(x.code) - rankOf(y.code)); return a; }
 pClubs.after = () => { $('#csort').onchange = e => { $('#cgrid').innerHTML = clubsSorted(e.target.value).map(clubCard).join(''); }; };
