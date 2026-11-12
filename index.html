@@ -339,6 +339,12 @@ footer .wrap{padding-block:34px calc(34px + env(safe-area-inset-bottom,0px));dis
 .ldscroll thead th{position:sticky;top:0;background:var(--card2);z-index:1}
 @media (max-width:900px){.ldwrap{grid-template-columns:minmax(0,1fr)}.ldtop{grid-template-columns:repeat(3,minmax(0,1fr))}.ldtop .osw{font-size:16px!important}}
 @media (max-width:520px){.ldtop{grid-template-columns:minmax(0,1fr)}}
+/* sponsor placements */
+.tsp{display:inline-flex;align-items:center;font:700 10.5px Oswald,"Arial Narrow",sans-serif;letter-spacing:.08em;padding:3px 8px;border-radius:4px}
+.tsp0{background:#0d2638;color:#8fd4ff}
+.prail{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;background:var(--bg2);border:1px solid var(--line);border-radius:10px}
+.prail .lbl{margin-right:6px}
+.prail .pt{font:700 12px Oswald,"Arial Narrow",sans-serif;letter-spacing:.06em;padding:6px 12px;border-radius:6px}
 </style>
 <header class="top"><div class="wrap hbar">
  <a class="logo" href="#home" aria-label="Hometown Box Lacrosse League home"><span class="mk">HB</span><span class="wd">Hometown Box Lacrosse<small>League · est. 2027</small></span></a>
@@ -1145,6 +1151,16 @@ const $ = (s, el) => (el || document).querySelector(s);
 const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const HOUSE = ['GhostDawg', 'PPI', 'FanQuake', 'Craftsman Homes', 'Mosaic Processing'];
+// Sponsor inventory: every placement is a slot the commissioner can sell (saved in the shared league)
+const SPC = { 'GHOSTDAWG': ['#111318', '#f5f5f5'], 'PPI': ['#0b2545', '#e8c266'], 'FANQUAKE': ['#c8102e', '#ffffff'], 'CRAFTSMAN HOMES': ['#1f4d3a', '#f1e7d0'], 'MOSAIC PROCESSING': ['#3b2a6b', '#ffffff'], 'KSN': ['#05070a', '#2ea8ff'], 'HBLL': ['#0d2638', '#8fd4ff'] };
+const SPSLOTS = [
+  ['scorebug', 'Score bug "presented by"', 1, ['GhostDawg']], ['goal', 'Goal graphic "presented by"', 1, ['FanQuake']], ['linechange', 'Line change graphic', 1, ['Craftsman Homes']], ['powerplay', 'Power play graphic', 1, ['PPI']],
+  ['boards', 'Dasher boards (rotating panels)', 6, ['GhostDawg', 'PPI', 'FanQuake', 'Craftsman Homes', 'Mosaic Processing', 'KSN']], ['floor', 'Floor decals (4 spots)', 4, ['FanQuake', 'GhostDawg', 'PPI', 'Craftsman Homes']],
+  ['ribbon', 'LED ribbon board in the stands', 4, ['GhostDawg', 'FanQuake', 'PPI', 'Mosaic Processing']], ['bench', 'Bench backdrops (home, away)', 2, ['Craftsman Homes', 'Mosaic Processing']],
+  ['ticker', 'Score ticker "presented by"', 1, ['GhostDawg']], ['channel', 'KSN channels "presented by" (rotates)', 5, HOUSE], ['partners', 'Official partners rail', 6, HOUSE]];
+function SP(k) { const sl = SPSLOTS.find(x => x[0] === k); const v = L && L.spons && L.spons[k]; const arr = (Array.isArray(v) ? v : v ? [v] : []).filter(Boolean); return arr.length ? arr : sl ? sl[3] : []; }
+function spCol(n, i) { const u = String(n).toUpperCase(); if (SPC[u]) return SPC[u]; const pal = [['#0e1a2b', '#f2d270'], ['#1b1f27', '#ffffff'], ['#7a1020', '#ffffff'], ['#0c3b2e', '#e9f5ee'], ['#2d1b4e', '#f0e6ff'], ['#3a2a10', '#ffd27a']]; return pal[(E.hash(u) + (i || 0)) % pal.length]; }
+function spAds(extra) { const a = SP('boards').map((n, i) => [String(n).toUpperCase(), ...spCol(n, i)]); if (extra) a.splice(Math.min(a.length, 5), 0, extra); a.push(['HBLL', '#0d2638', '#8fd4ff']); return a; }
 const STN = { AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming', PR: 'Puerto Rico', GU: 'Guam', VI: 'U.S. Virgin Islands', ON: 'Ontario' };
 const KEY = 'hbll-lax-save-5';
 const PAY_LINK = 'https://buy.stripe.com/7sYcN40V6dic4qMdu36AM0C';
@@ -1272,7 +1288,9 @@ function ticker() {
   const kl = kcLast(); const games = L.round ? L.sched[L.round - 1] : kl ? kl.games.filter(g => !g.bye) : [];
   const parts = games.map(g => `<span>${esc(g.h)} <b>${g.res.hs}</b> – <b>${g.res.as}</b> ${esc(g.a)}</span>`);
   const n = L.news.slice(0, 4).map(x => `<span><span class="tg">KSN</span>${esc(x.title)}</span>`);
-  $('#ticker').innerHTML = `<div class="in"><span class="tg">${L.round ? (L.phase === 'league' ? 'ROUND ' + L.round : 'FINAL') : kl ? 'KICKOFF CLASSIC · ' + kl.name.toUpperCase() : 'KICKOFF CLASSIC'}</span>${parts.join('')}${n.join('')}</div>`;
+  const tsp = SP('ticker')[0], bd = SP('boards'); const chip = (nm, i) => { const [bg, fg] = spCol(nm, i); return `<span class="tsp" style="background:${bg};color:${fg}">${esc(String(nm).toUpperCase())}</span>`; };
+  const mix = []; parts.forEach((p2, i) => { mix.push(p2); if (i % 5 === 4) mix.push(chip(bd[(i / 5 | 0) % bd.length], i)); });
+  $('#ticker').innerHTML = `<div class="in"><span class="tsp tsp0">SCORES PRESENTED BY ${esc(String(tsp).toUpperCase())}</span><span class="tg">${L.round ? (L.phase === 'league' ? 'ROUND ' + L.round : 'FINAL') : kl ? 'KICKOFF CLASSIC · ' + kl.name.toUpperCase() : 'KICKOFF CLASSIC'}</span>${mix.join('')}${n.join('')}${chip(tsp, 0)}</div>`;
 }
 let BUSY = false;
 async function advance(all) {
@@ -1798,6 +1816,7 @@ function viewerHTML() {
   return `<div class="mwrap"><div><div class="rink"><div class="bug" id="vbug"></div><div class="wpbar" id="vwp"></div><canvas id="rink" width="1000" height="470" aria-label="Rink replay"></canvas>
    <div class="ctl"><button class="btn sm" id="vplay">Pause</button><div class="seg" id="vspd">${['1', '2', '3', '4', '5'].map(k => `<button data-v="${k}" class="${k === '2' ? 'on' : ''}">${k}x</button>`).join('')}<button data-v="hl">Goals only</button></div><button class="btn sm" id="vmode" title="Switch between the 3D broadcast camera and the top-down rink">View: 3D Broadcast</button><button class="btn sm" id="vdrama" title="Slows to 1x in a close finish">Drama: on</button><button class="btn sm" id="vsnd">Sound: off</button><button class="btn sm" id="vend">Skip to final</button><button class="btn sm" id="vre">Restart</button></div><div class="mut" style="font-size:12px;padding:0 12px 10px;background:var(--bg2)">1x plays a full game in about 7½ minutes, 5x in about 90 seconds. With drama on, a close game drops to 1x for the last three minutes.</div></div>
    <div class="vstats" id="vstats"></div>
+   <div class="prail"><span class="lbl">Official partners of KSN</span>${SP('partners').map((nm, i) => { const [bg, fg] = spCol(nm, i); return `<span class="pt" style="background:${bg};color:${fg}">${esc(String(nm).toUpperCase())}</span>`; }).join('')}</div>
    <div id="vbox" style="margin-top:18px"></div></div>
    <div class="card" style="align-self:start;overflow:hidden"><div style="padding:14px 16px 0"><div class="lbl">Play by play</div></div><div class="feed" id="vfeed"></div></div></div>`;
 }
@@ -1950,7 +1969,7 @@ class Viewer {
     const tm = s => T(s === 0 ? this.g.h : this.g.a).nick;
     let line = null, cls = '';
     this.drama2(e, quiet);
-    if (e.k === 'goal') { this.sc[e.s]++; line = `<b>GOAL ${esc(tm(e.s))}.</b> ${esc(this.name(e.p))}${e.a ? `, from ${esc(this.name(e.a))}` : ', unassisted'}${e.dv ? '. A dive across the crease!' : e.in ? ' from close in.' : ' from outside.'}${e.pp ? ' Power-play goal.' : ''}${e.ot ? ' Sudden death, it\'s over!' : ''} ${this.sc[0]}–${this.sc[1]}.`; cls = 'g'; if (!quiet) { this.flash = { s: e.s, txt: this.name(e.p), until: performance.now() + 1700 }; this.pause = performance.now() + 1300; } }
+    if (e.k === 'goal') { this.sc[e.s]++; line = `<b>GOAL ${esc(tm(e.s))}.</b> ${esc(this.name(e.p))}${e.a ? `, from ${esc(this.name(e.a))}` : ', unassisted'}${e.dv ? '. A dive across the crease!' : e.in ? ' from close in.' : ' from outside.'}${e.pp ? ' Power-play goal.' : ''}${e.ot ? ' Sudden death, it\'s over!' : ''} ${this.sc[0]}–${this.sc[1]}.`; cls = 'g'; if (!quiet) { const n0 = performance.now(); const sl = this.mode === 'tv' ? 1 : 0.45; this.flash = { s: e.s, p: e.p, a: e.a, pp: e.pp, sc: this.sc.slice(), txt: this.name(e.p), from: n0 + 650 * sl, until: n0 + 650 * sl + 4200 }; } }
     else if (e.k === 'save' && !this.hl) line = `${esc(this.name(e.g))} stops ${esc(this.name(e.p))}${e.dv ? ' on a dive attempt' : e.in ? ' point-blank' : ''}.`;
     else if (e.k === 'to' && !this.hl && e.p) line = `${esc(this.name(e.p))} strips ${esc(this.name(e.x))}. Turnover.`;
     else if (e.k === 'pen' && !this.hl) line = `Penalty: ${esc(this.name(e.p))}, 2 minutes. ${esc(tm(1 - e.s))} go on the power play.`;
@@ -1975,7 +1994,7 @@ class Viewer {
     else if (e.k === 'miss') { st.sh[e.s]++; if (!Q && this.crunch()) SND.ooh(); }
     else if (e.k === 'to') { st.to[e.s]++; this.mom.push({ t: e.t, v: e.s === 0 ? -1 : 1 }); }
     else if (e.k === 'fo') { st.fow[e.s]++; }
-    else if (e.k === 'pen') { st.pp[1 - e.s]++; this.mom.push({ t: e.t, v: e.s === 0 ? -1 : 1 }); Q || this.banner('POWER PLAY', side(1 - e.s).nick, side(1 - e.s).p, 1400); }
+    else if (e.k === 'pen') { st.pp[1 - e.s]++; this.mom.push({ t: e.t, v: e.s === 0 ? -1 : 1 }); Q || this.banner('POWER PLAY', side(1 - e.s).nick + ' · presented by ' + SP('powerplay')[0], side(1 - e.s).p, 1600); }
     else if (e.k === 'reg' && this.sc[0] === this.sc[1] && this.ev.some(x => x.q === 5)) { Q || this.banner('SUDDEN DEATH', 'Next goal wins', '#ff5a5f', 2400); Q || SND.roar(0.6); }
     else if (e.k === 'qend') Q || this.banner('END OF Q' + e.q, `${this.th.nick} ${this.sc[0]} · ${this.sc[1]} ${this.ta.nick}`, '#2ea8ff', 1300);
     else if (e.k === 'end') { Q || SND.horn(); }
@@ -2022,7 +2041,7 @@ class Viewer {
     for (let row = 0; row < 3; row++) for (let i = 0; i < 120; i++) { const hsh = E.hash('cr' + row + ':' + i); x.fillStyle = crowdCols[hsh % crowdCols.length]; x.globalAlpha = 0.55 - row * 0.12; x.beginPath(); x.arc(8 + i * 8.3 + (row % 2) * 4, 8 + row * 7 + (hsh % 3), 2.4, 0, 7); x.fill(); x.beginPath(); x.arc(8 + i * 8.3 + (row % 2) * 4, H - 8 - row * 7 - (hsh % 3), 2.4, 0, 7); x.fill(); }
     x.globalAlpha = 1;
     // dasher boards: sponsor panels around the rink
-    const ads = [['GHOSTDAWG', '#111318', '#f5f5f5'], ['PPI', '#0b2545', '#e8c266'], ['FANQUAKE', '#c8102e', '#ffffff'], ['CRAFTSMAN HOMES', '#1f4d3a', '#f1e7d0'], ['MOSAIC PROCESSING', '#3b2a6b', '#ffffff'], [th.nick.toUpperCase(), th.p, inkPref(th.p, th.s)], ['KSN', '#05070a', '#2ea8ff'], ['HBLL', '#0d2638', '#8fd4ff']];
+    const ads = spAds([th.nick.toUpperCase(), th.p, inkPref(th.p, th.s)]);
     x.save(); x.beginPath(); x.roundRect(X0 - 12, Y0 - 12, RW + 24, RH + 24, 30 * k / 4.5 + 12); x.fillStyle = '#e9edf2'; x.fill(); x.restore();
     const panel = (px, py, w, h, ad, vertical) => { x.fillStyle = ad[1]; x.fillRect(px, py, w, h); x.fillStyle = ad[2]; let fs = vertical ? 9.5 : 11; const room = (vertical ? h : w) - 10; do { x.font = `700 ${fs}px Oswald, "Arial Narrow", sans-serif`; fs -= 0.5; } while (fs > 6 && x.measureText(ad[0]).width > room); x.textAlign = 'center'; x.textBaseline = 'middle'; if (vertical) { x.save(); x.translate(px + w / 2, py + h / 2); x.rotate(-Math.PI / 2); x.fillText(ad[0], 0, 0.5); x.restore(); } else x.fillText(ad[0], px + w / 2, py + h / 2 + 0.5); };
     const nTop = 6, pw = (RW - 120) / nTop;
@@ -2317,10 +2336,11 @@ class Viewer {
         // end-zone wordmarks
         for (const [cx, rot] of [[44, -Math.PI / 2], [156, Math.PI / 2]]) { x.save(); x.translate(X(cx), Y(42.5)); x.rotate(rot); x.scale((h / 85) / (w / 200), 1); x.fillStyle = '#ffffff30'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = `700 ${X(9)}px Oswald, "Arial Narrow", sans-serif`; x.fillText((th.nick || '').toUpperCase(), 0, 0); x.restore(); }
         x.fillStyle = '#ffffff40'; x.font = `700 ${X(3.2)}px Oswald, sans-serif`; x.textAlign = 'center'; x.fillText('KSN', X(100), Y(78)); x.fillText('HBLL', X(100), Y(7));
+        SP('floor').slice(0, 4).forEach((n, i) => { const [cx, cy] = [[78, 70], [122, 15], [78, 15], [122, 70]][i]; const [bg, fg] = spCol(n, i); x.save(); x.translate(X(cx), Y(cy)); x.scale(1, (h / 85) / (w / 200)); const fw = X(17), fh = X(5.2); x.globalAlpha = 0.82; x.fillStyle = bg; x.beginPath(); x.roundRect(-fw / 2, -fh / 2, fw, fh, X(1)); x.fill(); x.globalAlpha = 0.95; x.fillStyle = fg; let fs = X(2.6); do { x.font = `700 ${fs}px Oswald, "Arial Narrow", sans-serif`; fs -= 1; } while (fs > 6 && x.measureText(String(n).toUpperCase()).width > fw * 0.88); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(n).toUpperCase(), 0, 1); x.restore(); });
         x.restore();
       });
-      const ads = [['GHOSTDAWG', '#111318', '#f5f5f5'], ['PPI', '#0b2545', '#e8c266'], ['FANQUAKE', '#c8102e', '#ffffff'], ['CRAFTSMAN HOMES', '#1f4d3a', '#f1e7d0'], ['MOSAIC PROCESSING', '#3b2a6b', '#ffffff'], ['KSN', '#05070a', '#2ea8ff'], [(th.nick || '').toUpperCase(), th.p, inkPref(th.p, th.s)], ['HBLL', '#0d2638', '#8fd4ff']];
-      const adTex = mk(2048, 128, (x, w, h) => { const pw = w / 8; ads.forEach((a, i) => { x.fillStyle = a[1]; x.fillRect(i * pw, 0, pw, h); x.fillStyle = a[2]; let fs = 70; do { x.font = `700 ${fs}px Oswald, "Arial Narrow", sans-serif`; fs -= 2; } while (fs > 18 && x.measureText(a[0]).width > pw - 26); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(a[0], i * pw + pw / 2, h / 2 + 3); x.fillStyle = '#ffffff1c'; x.fillRect(i * pw, 0, pw, 12); x.fillStyle = '#00000055'; x.fillRect(i * pw + pw - 3, 0, 3, h); }); });
+      const ads = spAds([(th.nick || '').toUpperCase(), th.p, inkPref(th.p, th.s)]).slice(0, 8);
+      const adTex = mk(2048, 128, (x, w, h) => { const pw = w / ads.length; ads.forEach((a, i) => { x.fillStyle = a[1]; x.fillRect(i * pw, 0, pw, h); x.fillStyle = a[2]; let fs = 70; do { x.font = `700 ${fs}px Oswald, "Arial Narrow", sans-serif`; fs -= 2; } while (fs > 18 && x.measureText(a[0]).width > pw - 26); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(a[0], i * pw + pw / 2, h / 2 + 3); x.fillStyle = '#ffffff1c'; x.fillRect(i * pw, 0, pw, 12); x.fillStyle = '#00000055'; x.fillRect(i * pw + pw - 3, 0, 3, h); }); });
       const crowdCols = [th.p, th.s, th.p, '#d9dde3', '#8b97a8', '#3a4250', ta.p, th.p, '#c9b28f', '#22262e', th.p, '#5d6878'];
       const crowd = (seed) => mk(1024, 512, (x, w, h) => { x.filter = 'blur(0.8px)'; x.fillStyle = '#0b0e14'; x.fillRect(0, 0, w, h); const rows = 16, rh = h / rows; for (let r = 0; r < rows; r++) { x.fillStyle = '#151a22'; x.fillRect(0, r * rh + rh * 0.78, w, rh * 0.22); for (let i = 0; i < 46; i++) { const hs = E.hash(seed + 'c' + r + ':' + i); if (hs % 11 === 0) continue; const cx = (i + 0.5 + (r % 2) * 0.5) * (w / 46) + ((hs >> 4) % 6) - 3, cy = r * rh + rh * 0.55 - ((hs >> 7) % 3); x.fillStyle = crowdCols[hs % crowdCols.length]; x.beginPath(); x.ellipse(cx, cy + rh * 0.12, w / 46 * 0.36, rh * 0.32, 0, 0, 7); x.fill(); x.fillStyle = ['#e0bfa0', '#c99a78', '#8d5f42', '#f0d2b8', '#5e3d2a'][(hs >> 3) % 5]; x.beginPath(); x.arc(cx, cy - rh * 0.22, w / 46 * 0.2, 0, 7); x.fill(); if (hs % 5 === 0) { x.fillStyle = crowdCols[(hs >> 2) % crowdCols.length]; x.fillRect(cx - 2, cy - rh * 0.42, 4, rh * 0.12); } } } });
       const net = mk(128, 128, (x, w) => { x.clearRect(0, 0, w, w); x.strokeStyle = '#ffffffcc'; x.lineWidth = 2; for (let i = 0; i <= w; i += 16) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, w); x.stroke(); x.beginPath(); x.moveTo(0, i); x.lineTo(w, i); x.stroke(); } });
@@ -2331,9 +2351,11 @@ class Viewer {
       const hk = this.kit[0]; const cands = (ta.kits && ta.kits.length ? ta.kits : [this.kit[1]]).concat([{ base: '#f4f4f4', second: ta.p, trim: ta.p }, { base: '#15171c', second: ta.p, trim: ta.s }]);
       const score = kt => Math.min(cdist(kt.base, hk.base), cdist(kt.base, hk.second || hk.base) * 1.4) + (kt === cands[cands.length - 1] || kt === cands[cands.length - 2] ? -40 : 0);
       const ak = cands.slice().sort((a, b) => score(b) - score(a))[0];
+      const rib = mk(2048, 64, (x, w, h) => { x.fillStyle = '#05060a'; x.fillRect(0, 0, w, h); const list = SP('ribbon').concat(['KSN · KASPER SPORTS NETWORK', 'HOMETOWN BOX LACROSSE LEAGUE']); const pw = w / list.length; list.forEach((n, i) => { const [bg, fg] = spCol(n, i); x.fillStyle = fg === '#f5f5f5' || fg === '#ffffff' ? '#ffb02e' : fg; let fs = 40; do { x.font = `700 ${fs}px Oswald, "Arial Narrow", sans-serif`; fs -= 2; } while (fs > 14 && x.measureText(String(n).toUpperCase()).width > pw - 30); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(n).toUpperCase(), i * pw + pw / 2, h / 2 + 2); x.fillStyle = '#2ea8ff'; x.fillRect(i * pw, 10, 3, h - 20); }); x.fillStyle = '#00000055'; for (let y2 = 0; y2 < h; y2 += 3) x.fillRect(0, y2, w, 1); });
+      const benchTex = n => mk(512, 128, (x, w, h) => { const [bg, fg] = spCol(n); x.fillStyle = bg; x.fillRect(0, 0, w, h); x.fillStyle = fg; let fs = 70; do { x.font = `700 ${fs}px Oswald, "Arial Narrow", sans-serif`; fs -= 2; } while (fs > 18 && x.measureText(String(n).toUpperCase()).width > w - 40); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(n).toUpperCase(), w / 2, h / 2 + 3); });
       const G = { R, rpts, kit: [kitOf(hk), kitOf(ak)], jt: {}, camX: 100, camV: 0, zoom: 0, ph: {} };
-      G.tx = { floor: R.tex(floor), ads: R.tex(adTex, true), crowd: R.tex(crowd('a'), true), crowd2: R.tex(crowd('b'), true), net: R.tex(net, true), shadow: R.tex(shadow) };
-      G.m = { boards: R.mesh(GL3.strip(rpts, 0, 3.7, 128, true)), rail: R.mesh(GL3.strip(rpts, 3.7, 3.95, 999, true)), glass: R.mesh(GL3.strip(rpts, 3.95, 11, 999, true)),
+      G.tx = { rib: R.tex(rib, true), bench: SP('bench').slice(0, 2).map(n => R.tex(benchTex(n))), floor: R.tex(floor), ads: R.tex(adTex, true), crowd: R.tex(crowd('a'), true), crowd2: R.tex(crowd('b'), true), net: R.tex(net, true), shadow: R.tex(shadow) };
+      G.m = { rib: R.mesh({ P: [0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0], N: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], T: [0, 1, 4, 1, 4, 0, 0, 0], I: [0, 1, 2, 0, 2, 3] }), boards: R.mesh(GL3.strip(rpts, 0, 3.7, 128, true)), rail: R.mesh(GL3.strip(rpts, 3.7, 3.95, 999, true)), glass: R.mesh(GL3.strip(rpts, 3.95, 11, 999, true)),
         standF: R.mesh(GL3.slope(-60, 260, 92, 150, 3, 50, 4.5, 1.4)), standL: R.mesh({ P: [-14, 100, 3, -14, -15, 3, -70, -15, 48, -70, 100, 48], N: [0.6, 0, 0.8, 0.6, 0, 0.8, 0.6, 0, 0.8, 0.6, 0, 0.8], T: [0, 1.4, 2.2, 1.4, 2.2, 0, 0, 0], I: [0, 1, 2, 0, 2, 3] }), standR: R.mesh({ P: [214, -15, 3, 214, 100, 3, 270, 100, 48, 270, -15, 48], N: [-0.6, 0, 0.8, -0.6, 0, 0.8, -0.6, 0, 0.8, -0.6, 0, 0.8], T: [0, 1.4, 2.2, 1.4, 2.2, 0, 0, 0], I: [0, 1, 2, 0, 2, 3] }) };
       G.jersey = (id, side) => { if (G.jt[id]) return G.jt[id]; const k = G.kit[side]; const pl = this.P[id]; const num = pl ? String(pl.p.num) : ''; const c = mk(256, 128, (x, w, h) => { x.fillStyle = k.jersey; x.fillRect(0, 0, w, h); x.fillStyle = k.stripe; x.fillRect(0, h * 0.62, w, h * 0.1); x.fillRect(0, 0, w, h * 0.06); x.fillStyle = k.num; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = `700 ${h * 0.5}px Oswald, "Arial Narrow", sans-serif`; x.lineWidth = 5; x.strokeStyle = contrast(k.num, k.jersey) < 3 ? '#000000aa' : k.stripe; for (const u of [0.25, 0.75]) { x.strokeText(num, w * u, h * 0.38); x.fillText(num, w * u, h * 0.38); } }); return (G.jt[id] = R.tex(c)); };
       this._g3 = G; return G;
@@ -2362,6 +2384,7 @@ class Viewer {
     D(G.m.standL, I(1, 1, 1, [0, 0, 0]), '#ffffff', { tex: G.tx.crowd2, spec: 0, lit: 0.55, uvo: cmove });
     D(G.m.standR, I(1, 1, 1, [0, 0, 0]), '#ffffff', { tex: G.tx.crowd2, spec: 0, lit: 0.55, uvo: cmove });
     for (let i = 0; i < 9; i++) D(M.cube, GL3.box([-20 + i * 30, 60, 62], 6, 3, 1.2), '#fff8e6', { lit: 0 });
+    { const ro = (now / 1000 * 0.025) % 1; D(G.m.rib, GL3.basis([300, 0, 0], [0, 0.6, 2.4], [0, -0.97, 0.24], [-50, 97.5, 9.6]), '#ffffff', { tex: G.tx.rib, lit: 0, spec: 0, uvo: [-ro * 4, 0] }); }
     // floor + boards
     D(M.quad, I(200, 85, 1, [0, 0, 0]), '#ffffff', { tex: G.tx.floor, spec: 0.25 });
     D(G.m.boards, I(1, 1, 1, [0, 0, 0]), '#ffffff', { tex: G.tx.ads, spec: 0.3 });
@@ -2497,7 +2520,7 @@ class Viewer {
     const mk = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; f(c.getContext('2d'), w, h); return c; };
     const crest = mk(512, 512, (x, w) => { x.beginPath(); x.arc(256, 256, 240, 0, 7); x.fillStyle = th.p; x.fill(); x.lineWidth = 22; x.strokeStyle = th.s; x.stroke(); x.fillStyle = inkPref(th.p, th.s); x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '700 150px Oswald, "Arial Narrow", sans-serif'; x.fillText(th.code || this.g.h, 256, 250); x.font = '600 42px Oswald, "Arial Narrow", sans-serif'; x.fillText((th.nick || '').toUpperCase(), 256, 370); x.fillText((th.city || '').toUpperCase(), 256, 140); });
     const word = mk(1024, 200, (x, w, h) => { x.fillStyle = '#ffffff'; x.globalAlpha = 0.22; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '700 150px Oswald, "Arial Narrow", sans-serif'; x.fillText((th.nick || '').toUpperCase(), w / 2, h / 2); });
-    const ads = [['GHOSTDAWG', '#111318', '#f5f5f5'], ['PPI', '#0b2545', '#e8c266'], ['FANQUAKE', '#c8102e', '#ffffff'], ['CRAFTSMAN HOMES', '#1f4d3a', '#f1e7d0'], ['MOSAIC PROCESSING', '#3b2a6b', '#ffffff'], ['KSN', '#05070a', '#2ea8ff'], [(th.nick || '').toUpperCase(), th.p, inkPref(th.p, th.s)], ['HBLL', '#0d2638', '#8fd4ff']];
+    const ads = spAds([(th.nick || '').toUpperCase(), th.p, inkPref(th.p, th.s)]);
     const adStrip = mk(4096, 96, (x, w, h) => { const n = 16, pw = w / n; for (let i = 0; i < n; i++) { const a = ads[i % ads.length]; x.fillStyle = a[1]; x.fillRect(i * pw, 0, pw - 4, h); x.fillStyle = a[2]; let fs = 58; do { x.font = `700 ${fs}px Oswald, "Arial Narrow", sans-serif`; fs -= 2; } while (fs > 20 && x.measureText(a[0]).width > pw - 30); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(a[0], i * pw + pw / 2, h / 2 + 2); x.fillStyle = '#ffffff22'; x.fillRect(i * pw, 0, pw - 4, 10); } });
     const crowdCols = [th.p, th.s, th.p, '#d9dde3', '#8b97a8', '#3a4250', ta.p, th.p, '#c9b28f', '#22262e'];
     const seats = [];
@@ -2639,6 +2662,7 @@ class Viewer {
       const x0 = sd === 0 ? 66 : 108, k = G.kit[sd];
       D(M.cube, GL3.box([x0 + 13, 88.6, 1.0], 28, 2.2, 2.0, 0), '#2a2f38', { spec: 0.2 });
       D(M.cube, GL3.box([x0 + 13, 90.2, 2.6], 28, 0.4, 5.2, 0), '#1c2027', { spec: 0.1 });
+      if (G.tx.bench[sd]) D(M.quad, GL3.basis([26, 0, 0], [0, 0, 3.2], [0, -1, 0], [x0, 89.9, 4.0]), '#ffffff', { tex: G.tx.bench[sd], lit: 0.6, spec: 0 });
       ids.slice(0, 11).forEach((id, i) => {
         const bx = x0 + 1.6 + i * 2.5 + (E.hash(id) % 5) * 0.08, by = 88.4; const bob = Math.sin(this.T * 0.9 + id) * 0.06 + (this.flash && this.flash.s === sd ? Math.abs(Math.sin(this.T * 9 + i)) * 0.6 : 0);
         D(M.cyl, GL3.seg([bx, by, 2.1 + bob], [bx, by - 0.15, 4.0 + bob], 0.62, 0.42, [0, -1, 0]), '#ffffff', { tex: G.jersey(id, sd), spec: 0.3 });
@@ -2656,22 +2680,41 @@ class Viewer {
     const team = (t, sc, xx) => { x.fillStyle = t.p; x.fillRect(xx, Y, 92, 40); x.fillStyle = inkPref(t.p, t.s); x.font = '700 19px Oswald, "Arial Narrow", sans-serif'; x.textAlign = 'left'; x.fillText(t.code || '', xx + 10, Y + 21); x.textAlign = 'right'; x.font = '700 24px Oswald, "Arial Narrow", sans-serif'; x.fillText(sc, xx + 84, Y + 21); };
     team(ta, this.sc[1], X + 56); team(th, this.sc[0], X + 152);
     x.fillStyle = '#e9edf2'; x.font = '600 15px Inter, sans-serif'; x.textAlign = 'center'; x.fillText(q > 4 ? 'OT' : 'Q' + q, X + 270, Y + 21); x.fillText(q > 4 ? '' : mmss(left), X + 322, Y + 21);
-    x.fillStyle = '#05070acc'; x.fillRect(X, Y + 40, 360, 18); x.fillStyle = '#8fd4ff'; x.font = '600 10.5px Inter, sans-serif'; x.textAlign = 'left'; x.fillText('HOMETOWN BOX LACROSSE LEAGUE · PRESENTED BY GHOSTDAWG', X + 8, Y + 49.5);
+    x.fillStyle = '#05070acc'; x.fillRect(X, Y + 40, 360, 18); x.fillStyle = '#8fd4ff'; x.font = '600 10.5px Inter, sans-serif'; x.textAlign = 'left'; x.fillText('HOMETOWN BOX LACROSSE LEAGUE · PRESENTED BY ' + String(SP('scorebug')[0]).toUpperCase(), X + 8, Y + 49.5);
     x.globalAlpha = 0.75; x.fillStyle = '#fff'; x.font = '700 16px Oswald, "Arial Narrow", sans-serif'; x.textAlign = 'right'; x.fillText('KSN', 978, 450); x.font = '600 9px Inter, sans-serif'; x.fillText('KASPER SPORTS NETWORK', 978, 462); x.restore();
   }
   overlay(now) {
-    const x = this.x;
-    if (this.subMsg && now < this.subMsg.until) { const a = Math.min(1, (this.subMsg.until - now) / 400, 1 - (now - (this.subMsg.until - 3200)) / 3200 < 0.95 ? 1 : 1); x.save(); x.setTransform(this.dpr, 0, 0, this.dpr, 0, 0); x.globalAlpha = a; x.font = '600 13px Inter, sans-serif'; const w = Math.min(940, x.measureText(this.subMsg.txt).width + 120); x.fillStyle = '#05070ae6'; x.fillRect(22, 400, w, 32); x.fillStyle = '#2ea8ff'; x.fillRect(22, 400, 96, 32); x.fillStyle = '#fff'; x.font = '700 13px Oswald, "Arial Narrow", sans-serif'; x.textBaseline = 'middle'; x.textAlign = 'left'; x.fillText('LINE CHANGE', 30, 416.5); x.font = '600 13px Inter, sans-serif'; x.fillText(this.subMsg.txt, 128, 416.5); x.restore(); }
-    if (this.banners.length && !(this.flash && now < this.flash.until)) {
-      const b = this.banners[0]; if (!b.until) b.until = now + b.ms;
-      if (now > b.until) this.banners.shift();
-      else { const a = Math.min(1, (b.until - now) / 300, (now - (b.until - b.ms)) / 200); x.save(); x.globalAlpha = Math.max(0, a); const g = x.createLinearGradient(0, 0, 1000, 0); g.addColorStop(0, '#000000'); g.addColorStop(0.5, b.color); g.addColorStop(1, '#000000'); x.fillStyle = g; x.fillRect(0, 190, 1000, 90); x.fillStyle = inkPref(b.color, '#ffffff'); x.font = '700 48px Oswald, "Arial Narrow", "DejaVu Sans Condensed", sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(b.text, 500, 226); if (b.sub) { x.font = '600 18px Inter, sans-serif'; x.fillText(b.sub, 500, 262); } x.restore(); }
+    const x = this.x; const OS = '"Oswald", "Arial Narrow", "DejaVu Sans Condensed", sans-serif';
+    x.save(); x.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    const rr = (x0, y0, w, h, r) => { x.beginPath(); x.roundRect(x0, y0, w, h, r); };
+    // line change: small strip under the score bug
+    if (this.subMsg && now < this.subMsg.until) { const a = Math.min(1, (this.subMsg.until - now) / 400); x.globalAlpha = a * 0.95; x.font = '600 11.5px Inter, sans-serif'; const w = Math.min(930, x.measureText(this.subMsg.txt).width + 104); rr(22, 82, w, 24, 5); x.fillStyle = '#05070aa6'; x.fill(); x.fillStyle = '#2ea8ff'; x.font = `700 11.5px ${OS}`; x.textBaseline = 'middle'; x.textAlign = 'left'; x.fillText('LINE CHANGE', 31, 94.5); x.fillStyle = '#e9edf2'; x.font = '600 11.5px Inter, sans-serif'; x.fillText(this.subMsg.txt, 116, 94.5); x.font = '700 9px Inter, sans-serif'; x.fillStyle = '#8fd4ff'; x.fillText('PRESENTED BY ' + String(SP('linechange')[0]).toUpperCase(), 31, 113); x.globalAlpha = 1; }
+    // event pills (face-off, power play, crunch time...): compact, translucent, top center
+    const goalOn = this.flash && now >= this.flash.from && now < this.flash.until;
+    if (this.banners.length && !goalOn) {
+      const bn = this.banners[0]; if (!bn.until) bn.until = now + bn.ms;
+      if (now > bn.until) this.banners.shift();
+      else { const a = Math.max(0, Math.min(1, (bn.until - now) / 300, (now - (bn.until - bn.ms)) / 200)); x.globalAlpha = a; x.font = `700 20px ${OS}`; const tw = x.measureText(bn.text).width; x.font = '600 11.5px Inter, sans-serif'; const sw = bn.sub ? x.measureText(bn.sub).width : 0; const w = Math.max(tw, sw) + 44; const x0 = 500 - w / 2; rr(x0, 18, w, bn.sub ? 50 : 34, 8); x.fillStyle = '#05070a99'; x.fill(); x.fillStyle = bn.color; x.fillRect(x0, 18, 4, bn.sub ? 50 : 34); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#ffffff'; x.font = `700 20px ${OS}`; x.fillText(bn.text, 500, 36); if (bn.sub) { x.font = '600 11.5px Inter, sans-serif'; x.fillStyle = '#c9d3df'; x.fillText(bn.sub, 500, 57); } x.globalAlpha = 1; }
     }
-    if (this.flash && now < this.flash.until) {
-      const t = this.flash.s === 0 ? this.th : this.ta; const a = Math.min(1, (this.flash.until - now) / 400);
-      x.save(); x.globalAlpha = a; x.fillStyle = t.p; x.fillRect(0, 175, 1000, 120); x.fillStyle = inkPref(t.p, t.s); x.font = '700 72px Oswald, "Arial Narrow", "DejaVu Sans Condensed", sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('GOAL ' + t.nick.toUpperCase(), 500, 222); x.font = '600 22px Inter, sans-serif'; x.fillText(this.flash.txt, 500, 270); x.restore();
+    // goal: after the ball is in the net, a lower third with the scorer's number and name. No band across the players.
+    if (goalOn) {
+      const f = this.flash; const t = f.s === 0 ? this.th : this.ta; const age = now - f.from, left = f.until - now;
+      const a = Math.min(1, age / 250, left / 450); const slide = Math.max(0, 1 - age / 320) * -60;
+      const pl = this.P[f.p], as = f.a && this.P[f.a];
+      const line1 = pl ? `#${pl.p.num}  ${pl.p.fn} ${pl.p.ln}`.toUpperCase() : '';
+      const line2 = `${as ? 'Assist: #' + as.p.num + ' ' + as.p.fn[0] + '. ' + as.p.ln : 'Unassisted'}${f.pp ? ' · Power play' : ''}   ·   ${(this.ta.code || this.g.a)} ${f.sc[1]} – ${f.sc[0]} ${(this.th.code || this.g.h)}`; const spg = 'GOAL PRESENTED BY ' + String(SP('goal')[0]).toUpperCase();
+      x.globalAlpha = a; x.translate(slide, 0);
+      x.font = `700 21px ${OS}`; const w1 = x.measureText(line1).width; x.font = '600 12px Inter, sans-serif'; const w2 = x.measureText(line2).width; const w = Math.max(w1 + 132, w2 + 40, 300);
+      const y0 = 382; const g = x.createLinearGradient(22, 0, 22 + w + 60, 0); g.addColorStop(0, '#05070ad0'); g.addColorStop(0.75, '#05070a99'); g.addColorStop(1, '#05070a00'); x.fillStyle = g; x.fillRect(22, y0, w + 60, 64);
+      x.fillStyle = t.p; x.fillRect(22, y0, 6, 64);
+      const gc = contrast(t.p, '#05070a') >= 3 ? t.p : inkPref('#05070a', t.s); x.fillStyle = gc; x.font = `700 26px ${OS}`; x.textAlign = 'left'; x.textBaseline = 'alphabetic'; x.fillText('GOAL', 38, y0 + 30);
+      x.fillStyle = '#ffffff'; x.font = `700 21px ${OS}`; x.fillText(line1, 124, y0 + 29); x.font = '700 9.5px Inter, sans-serif'; x.fillStyle = '#8fd4ff'; x.fillText(spg, 38, y0 - 6);
+      x.fillStyle = '#c9d3df'; x.font = '600 12px Inter, sans-serif'; x.fillText(line2, 38, y0 + 52);
+      x.translate(-slide, 0); x.globalAlpha = 1;
     }
-    if (this.T >= this.end) { x.save(); x.fillStyle = '#000a'; x.fillRect(0, 175, 1000, 120); x.fillStyle = '#fff'; x.font = '700 64px Oswald, "Arial Narrow", "DejaVu Sans Condensed", sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(`FINAL  ${this.g.h} ${this.sc[0]} – ${this.sc[1]} ${this.g.a}`, 500, 222); x.font = '500 20px Inter, sans-serif'; x.fillStyle = '#c9d3df'; x.fillText('Box score below', 500, 270); x.restore(); }
+    // final: compact card at the top, play stays visible
+    if (this.T >= this.end) { const txt = `FINAL   ${this.th.code || this.g.h} ${this.sc[0]} – ${this.sc[1]} ${this.ta.code || this.g.a}`; x.font = `700 24px ${OS}`; const w = x.measureText(txt).width + 50; rr(500 - w / 2, 18, w, 58, 8); x.fillStyle = '#05070abb'; x.fill(); x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, 500, 40); x.font = '500 11.5px Inter, sans-serif'; x.fillStyle = '#c9d3df'; x.fillText('Box score below', 500, 63); }
+    x.restore();
   }
   box(final) {
     const B = {}; const b = id => B[id] = B[id] || { g: 0, a: 0, sh: 0, lb: 0, cto: 0, pim: 0, fow: 0, sv: 0, ga: 0 };
@@ -2780,7 +2823,7 @@ function pChannel(arg) {
   const games = clubGames(code), withRep = games.filter(x => evData(x.g.id));
   const sel = (CH.pick[code] && games.find(x => x.g.id === CH.pick[code])) || withRep[0] || null;
   const nx = clubNext(code), rec = c.rec;
-  const sponsor = HOUSE[(i + (L.round || 0)) % HOUSE.length];
+  const chs = SP('channel'); const sponsor = chs[(i + (L.round || 0)) % chs.length];
   const head = `<section class="cban chban" style="--cp:${t.p}"><div class="art" style="background-image:url(img/${code}.jpg)"></div><div class="stripe"></div><div class="wrap"><div class="row" style="justify-content:space-between;align-items:flex-end"><h1><small>KSN ${i + 1} · The ${esc(t.nick)} channel · presented by ${esc(sponsor)}</small>${esc(t.city)} ${esc(t.nick)}</h1>
    <div class="row"><a class="btn sm" href="#ch-${prev.code.toLowerCase()}" title="Previous channel">‹ KSN ${i || cl.length}</a><a class="btn sm" href="#ksn">All channels</a><a class="btn sm" href="#ch-${next.code.toLowerCase()}" title="Next channel">KSN ${(i + 2) > cl.length ? 1 : i + 2} ›</a></div></div>
    <div class="facts">${c.exp ? '<div><b>Div B</b><span>Division</span></div>' : `<div><b>${rec.w}-${rec.d}-${rec.l}</b><span>Record</span></div>`}<div><b>${teamOvr(c)}</b><span>Team rating</span></div><div><b>${esc(t.arena || '')}</b><span>Home rink</span></div>${nx ? `<div><b>${nx.g.h === code ? 'vs' : 'at'} ${esc(nx.g.h === code ? nx.g.a : nx.g.h)}</b><span>Next · ${esc(nx.lab)}</span></div>` : ''}</div>
@@ -2803,6 +2846,8 @@ function pSponsors() {
   return `<div class="wrap sec"><div class="sh"><div><div class="lbl">Sponsorship</div><h2>Every sightline is inventory</h2><p>The game renders every club's arena, so a sponsor's name shows up wherever a fan would see it in a real building, in every simulated game and every KSN highlight.</p></div></div>
   <div class="imgc" style="aspect-ratio:953/536;margin-bottom:26px"><img src="img/lg-sponsors.jpg" alt="Sponsorship inventory diagram over an arena: dasher boards, turf logo, jersey patches, jumbotron, shot clock"></div>
   <div class="grid g3"><div class="card pad"><h3>League partners</h3><p class="mut">On the dasher boards and the center logo in every rink, and on the KSN broadcast set.</p></div><div class="card pad"><h3>Club partners</h3><p class="mut">Each owner can sell their own club's arena name, jersey patch and boards to businesses in their zip. Every founding club has a list of local targets on its club page.</p></div><div class="card pad"><h3>Moments</h3><p class="mut">Goal of the round, dive shot of the week and the injury wire are KSN segments a sponsor can put a name on.</p></div></div>
+  <h3 class="osw" style="font-size:22px;margin:34px 0 6px">Inventory on every KSN game</h3><p class="mut" style="margin:0 0 14px">Each placement appears in every simulated game, every replay and on every club's KSN channel. Current holders shown.</p>
+  <div class="tw" style="margin-bottom:26px"><table><thead><tr><th>Placement</th><th>Where fans see it</th><th>Spots</th><th>Current partner</th></tr></thead><tbody>${SPSLOTS.map(([k, label, n]) => `<tr><td><b>${esc(label)}</b></td><td class="mut" style="font-size:13px">${({ scorebug: 'Under the score bug, the whole game', goal: 'Every goal graphic', linechange: 'Every line change graphic', powerplay: 'Every power play graphic', boards: 'Dasher boards around the rink, both views', floor: 'Painted on the floor, both sides of center', ribbon: 'Scrolling LED ribbon in the stands', bench: 'Behind each bench, in the broadcast shot', ticker: 'Site-wide score ticker on every page', channel: 'Each club channel page header', partners: 'Partner rail under every game viewer' })[k] || ''}</td><td>${n}</td><td>${SP(k).slice(0, n).map(esc).join(', ')}</td></tr>`).join('')}</tbody></table></div>
   <h3 class="osw" style="font-size:22px;margin:34px 0 14px">League partners</h3>${sponsorStrip()}</div>`;
 }
 
@@ -3024,7 +3069,7 @@ document.addEventListener('click', async e => {
   if (t.dataset.tabgo) { CT.code = ROLE ? ROLE.club : CT.code; CT.tab = t.dataset.tabgo; }
   if (d.act === 'close') return closeModal();
   if (d.act === 'manage') { closeModal(); return manage(d.code); }
-  if (['dpick', 'dauto', 'dsim', 'drest', 'cut', 'farm', 'sign', 'ownout', 'lassign', 'lwipe', 'signout', 'simode', 'startleague', 'assign', 'unassign', 'copyinvite', 'wipeask', 'wipeno', 'wipe', 'approve', 'reject', 'cdone', 'addowner'].includes(d.act)) return netAct(d.act, d);
+  if (['dpick', 'dauto', 'dsim', 'drest', 'cut', 'farm', 'sign', 'ownout', 'lassign', 'lwipe', 'signout', 'simode', 'startleague', 'assign', 'unassign', 'copyinvite', 'wipeask', 'wipeno', 'wipe', 'approve', 'reject', 'cdone', 'addowner', 'spsave', 'spreset'].includes(d.act)) return netAct(d.act, d);
   if (d.ldr) { if (d.ldsel === 'kscat') { KS.stat = d.ldr; const el = $('#ksleaders'); if (el) el.innerHTML = el.innerHTML.slice(0, 0) + ksLeadersInner(); } else { LG.stat = d.ldr; $('#lgtab').innerHTML = lgTab(); } return; }
   if (d.act === 'advance') return advance();
   if (d.tp) { const f = pfind(+d.tp); if (!f || !f.c || !canEdit(f.c.code)) return; const c = f.c; if (c.tpAuto !== false) c.tpAuto = false; const left = E.TP_WEEK - E.tpUsed(c); const v = Math.max(0, Math.min(E.TP_MAX, (f.p.tp || 0) + Math.min(+d.d, left))); f.p.tp = v; if (v && !f.p.train) f.p.train = E.weakKey(f.p); persistClub(c); $('#ctab').innerHTML = clubTab(c, T(c.code)); return; }
@@ -3231,6 +3276,9 @@ function localCommish() {
   <div class="tw"><table><thead><tr><th>Club</th><th>Div</th><th>Record</th><th>Owner</th><th></th></tr></thead><tbody>
   ${clubs.map(t => { const c = getClub(t.code); return `<tr><td><div class="tclub">${badge(t.code, 1)}<a href="#club-${t.code.toLowerCase()}">${esc(tname(t.code))}</a></div></td><td>${c && c.exp ? 'B' : 'A'}</td><td>${c ? c.rec.w + '-' + c.rec.d + '-' + c.rec.l : ''}</td><td>${owner(t.code) ? esc(owner(t.code)) : '<span class="dim">Autopilot</span>'}</td><td class="r"><button class="btn sm" data-act="manage" data-code="${t.code}">${isYou(t.code) ? 'Editing' : 'Take over'}</button></td></tr>`; }).join('')}
   </tbody></table></div>
+  <h3 class="osw" style="font-size:22px;margin:28px 0 6px">Sponsor placements</h3><p class="mut" style="margin:0 0 12px">Sell any spot: type the sponsor's name and save. It shows up in every game, replay and KSN page for everyone. Separate several names with commas.</p>
+  <div class="tw"><table><thead><tr><th>Placement</th><th>Spots</th><th>Sponsors</th></tr></thead><tbody>${SPSLOTS.map(([k, label, n]) => `<tr><td><b>${esc(label)}</b></td><td>${n}</td><td><input type="text" data-spk="${k}" value="${esc(SP(k).join(', '))}" style="height:34px;width:100%;min-width:260px"></td></tr>`).join('')}</tbody></table></div>
+  <div class="row" style="margin-top:12px"><button class="btn pri sm" data-act="spsave">Save sponsor placements</button><button class="btn sm" data-act="spreset">Reset to house partners</button></div>
   ${NET.on ? claimsBlock() : ''}
   <div class="card pad" style="margin-top:22px;border-color:#5a2226"><h3>Start over</h3><p class="mut" style="margin-top:0">Wipes every result and regenerates all players. Owners stay.</p>${CM.confirm ? '<div class="row"><span>Erase the league?</span><button class="btn sm" data-act="lwipe">Yes, start over</button><button class="btn sm" data-act="wipeno">Cancel</button></div>' : '<button class="btn sm" data-act="wipeask">Start a new league</button>'}</div></div>`;
 }
@@ -3284,6 +3332,11 @@ async function netAct(act, d) {
       }
       try { await rpc('hb_claim_set', { p_token: ROLE.token, p_id: cl.id, p_status: act === 'approve' ? 'approved' : act === 'reject' ? 'rejected' : 'done' }); } catch (e) { toast(e.message); }
       CM.claims = null; shell(); toast(act === 'approve' ? `${cl.team.city} ${cl.team.nick} added. Create their login below.` : act === 'reject' ? 'Claim rejected. Refund it in Stripe if it was paid.' : 'Hidden.'); route(); loadClaims(); return;
+    }
+    if (act === 'spsave' || act === 'spreset') {
+      if (NET.on) { try { await netLoad(); } catch (e) { toast("Couldn't reach the league server."); return; } }
+      if (act === 'spreset') L.spons = {}; else { const o = {}; $$('[data-spk]').forEach(i => { const v = i.value.split(',').map(x => x.trim()).filter(Boolean).slice(0, 12); if (v.length) o[i.dataset.spk] = v; }); L.spons = o; }
+      if (await commit()) { shell(); toast(act === 'spreset' ? 'Sponsor placements reset to the house partners.' : 'Sponsor placements saved. Every game and page now shows them.'); } route(); return;
     }
     if (act === 'addowner') {
       const name = $('#noname').value.trim(), email = $('#noemail').value.trim().toLowerCase(), club = $('#noclub').value, pw = $('#nopw').value, adm = $('#noadmin').checked;
