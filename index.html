@@ -325,6 +325,8 @@ const ENG = (() => {
     return f;
   }
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  // fresh randomness for every game, injury roll, training week and draw (player generation stays fixed)
+  const nonce = () => ':' + (typeof crypto !== 'undefined' && crypto.getRandomValues ? Array.from(crypto.getRandomValues(new Uint32Array(2))).join('-') : Math.random().toString(36).slice(2) + Date.now());
 
   // ---------- names ----------
   const FIRST = 'Aidan Alex Andrew Austin Bennett Blake Brady Brendan Brett Brian Brody Caleb Cameron Carter Casey Chase Christian Cody Colby Cole Colin Connor Cooper Dallas Dalton Danny Declan Derek Dylan Eli Ethan Evan Finn Garrett Gavin Grady Graham Grant Griffin Hayden Henry Hunter Ian Isaac Jack Jace Jake Jalen Jared Jason Jesse Joe Jordan Josh Kade Keegan Kellen Kevin Kyle Landon Liam Logan Luke Marcus Mason Matt Max Micah Miles Mitch Nate Nick Noah Nolan Owen Parker Pat Quinn Reid Riley Ryan Sam Sean Seth Shane Spencer Tanner Tate Trey Tristan Ty Tyler Wade Wes Will Wyatt Zach Zane Dante Andre Malik Terrell Isaiah Xavier Mateo Diego Luis Rafael Theo Rocco Vince Dom Gio Kai Reece Beau Cade Rhett Shea'.split(' ');
@@ -681,7 +683,7 @@ const ENG = (() => {
   // ---------- Kickoff Classic, played round by round ----------
   const KCN = n => n >= 64 ? 'Round of ' + n : n === 32 ? 'Round of 32' : n === 16 ? 'Round of 16' : n === 8 ? 'Quarterfinals' : n === 4 ? 'Semifinals' : 'Final';
   function kcStart(L) {
-    const r = RNG(L.seed + ':kc:' + L.season);
+    const r = RNG(L.seed + ':kc:' + L.season + nonce());
     const codes = allClubs(L).map(c => c.code);
     for (let i = codes.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [codes[i], codes[j]] = [codes[j], codes[i]]; }
     let size = 2; while (size < codes.length) size *= 2;
@@ -708,8 +710,8 @@ const ENG = (() => {
     PID = Math.max(PID, L.pid || 1); L.lastEv = L.lastEv || {};
     if (!cur.games.some(x => x.res)) { const prev = L.kc.rounds.length ? L.kc.rounds[L.kc.rounds.length - 1].games.map(x => x.id) : []; pruneEv(L, prev); }
     const hc = club(L, g.h), ac = club(L, g.a);
-    const res = simMatch(L, hc, ac, { cup: true, seed: L.seed + ':kc' + L.season + ':' + id });
-    applyMatch(L, hc, ac, res, { cup: true, cat: 'pre', seed: L.seed + 'kc' + L.season + id });
+    const res = simMatch(L, hc, ac, { cup: true, seed: L.seed + ':kc' + L.season + ':' + id + nonce() });
+    applyMatch(L, hc, ac, res, { cup: true, cat: 'pre', seed: L.seed + 'kc' + L.season + id + nonce() });
     const gl = res.ev.filter(e => e.k === 'goal').map(e => [e.s, e.p, e.a || 0, e.q, Math.round(e.t), e.dv ? 1 : 0, e.pp ? 1 : 0]);
     Object.assign(g, { hs: res.sc[0], as: res.sc[1], ot: res.ot, w: res.sc[0] > res.sc[1] ? g.h : g.a, res: { hs: res.sc[0], as: res.sc[1], sh: res.shots, gl } });
     L.lastEv[id] = { ev: res.ev, lu: res.lu }; L.pid = PID;
@@ -719,7 +721,7 @@ const ENG = (() => {
   function kcFinish(L) {
     const cur = L.kc.cur; const games = cur.games, next = games.map(g => g.w);
     L.kc.rounds.push({ name: cur.name, games }); L.kc.field = next; delete L.kc.cur;
-    for (const c of allClubs(L)) weekly(L, c, RNG(L.seed + ':kcwk:' + L.season + cur.rn));
+    for (const c of allClubs(L)) weekly(L, c, RNG(L.seed + ':kcwk:' + L.season + cur.rn + nonce()));
     if (next.length === 1) {
       L.kc.champ = next[0]; L.phase = 'league';
       const fin = games[0];
@@ -746,8 +748,8 @@ const ENG = (() => {
     PID = Math.max(PID, L.pid || 1); L.lastEv = L.lastEv || {};
     if (!games.some(x => x.res)) pruneEv(L, (L.sched[L.round - 1] || []).map(x => x.id));
     const hc = club(L, g.h), ac = club(L, g.a);
-    const res = simMatch(L, hc, ac, { seed: L.seed + ':' + L.season + ':' + g.id });
-    const inj = applyMatch(L, hc, ac, res, { seed: L.seed + L.season + g.id });
+    const res = simMatch(L, hc, ac, { seed: L.seed + ':' + L.season + ':' + g.id + nonce() });
+    const inj = applyMatch(L, hc, ac, res, { seed: L.seed + L.season + g.id + nonce() });
     record(hc, res.sc[0], res.sc[1]); record(ac, res.sc[1], res.sc[0]);
     const top = Object.entries(res.S).map(([id, s]) => ({ id: +id, pts: s.g + s.a, g: s.g, a: s.a, sv: s.sv, gk: s.gk })).sort((a, b) => b.pts - a.pts || b.g - a.g);
     const gl = res.ev.filter(e => e.k === 'goal').map(e => [e.s, e.p, e.a || 0, e.q, Math.round(e.t), e.dv ? 1 : 0, e.pp ? 1 : 0]);
@@ -759,7 +761,7 @@ const ENG = (() => {
   function finishRound(L) {
     const rn = L.round + 1; const games = L.sched[rn - 1];
     L.round = rn;
-    const r = RNG(L.seed + ':wk:' + L.season + ':' + rn);
+    const r = RNG(L.seed + ':wk:' + L.season + ':' + rn + nonce());
     for (const c of allClubs(L)) weekly(L, c, r);
     roundNews(L, games.map(g => ({ g, inj: g.res.inj || [] })));
     if (rn >= L.sched.length) { L.phase = 'playoffs'; news(L, { kind: 'league', title: 'League season complete: the Championship bracket is set', body: 'The top eight on the final table play single elimination for the Division A title.' }); }
@@ -804,7 +806,7 @@ const ENG = (() => {
     let field = pairs.map(([a, b]) => [T[a], T[b]]); const rounds = []; const names = ['Quarterfinals', 'Semifinals', 'Final'];
     while (field.length) {
       const games = []; const next = [];
-      for (const [a, b] of field) { const res = simMatch(L, club(L, a), club(L, b), { cup: true, seed: L.seed + ':po' + L.season + a + b }); applyMatch(L, club(L, a), club(L, b), res, { cup: true, cat: 'post' }); const w = res.sc[0] > res.sc[1] ? a : b; games.push({ h: a, a: b, hs: res.sc[0], as: res.sc[1], ot: res.ot, w }); next.push(w); }
+      for (const [a, b] of field) { const res = simMatch(L, club(L, a), club(L, b), { cup: true, seed: L.seed + ':po' + L.season + a + b + nonce() }); applyMatch(L, club(L, a), club(L, b), res, { cup: true, cat: 'post', seed: L.seed + 'po' + a + b + nonce() }); const w = res.sc[0] > res.sc[1] ? a : b; games.push({ h: a, a: b, hs: res.sc[0], as: res.sc[1], ot: res.ot, w }); next.push(w); }
       rounds.push({ name: names[rounds.length], games });
       field = next.length > 1 ? [[next[0], next[1]], ...(next.length > 2 ? [[next[2], next[3]]] : [])] : [];
       if (next.length === 1) { L.champ = { rounds, champ: next[0] }; }
@@ -817,7 +819,7 @@ const ENG = (() => {
   const CAMP_MAX = 30, SEASON_MAX = 25, SEASON_MIN = 23;
   function offBegin(L, TEAMS) {
     if (L.phase !== 'offseason' || (L.off && L.off.stage !== 'review')) return null;
-    const r = RNG(L.seed + ':off:' + L.season); PID = Math.max(PID, L.pid || 1);
+    const r = RNG(L.seed + ':off:' + L.season + nonce()); PID = Math.max(PID, L.pid || 1);
     const T = table(L);
     L.hist.push({ season: L.season, champ: L.champ?.champ, kc: L.kc?.champ, top: T[0].code });
     const retired = [];
@@ -887,7 +889,7 @@ const ENG = (() => {
   }
   function offFinish(L, TEAMS) {
     if (!L.off || L.off.stage !== 'camp') return null;
-    const r = RNG(L.seed + ':open:' + L.season); PID = Math.max(PID, L.pid || 1);
+    const r = RNG(L.seed + ':open:' + L.season + nonce()); PID = Math.max(PID, L.pid || 1);
     let auto = 0;
     for (const c of allClubs(L)) {
       const before = c.players.length; autoCuts(L, c); auto += Math.max(0, before - c.players.length);
@@ -953,7 +955,7 @@ const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const HOUSE = ['GhostDawg', 'PPI', 'FanQuake', 'Craftsman Homes', 'Mosaic Processing'];
 const STN = { AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey', NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming', PR: 'Puerto Rico', GU: 'Guam', VI: 'U.S. Virgin Islands', ON: 'Ontario' };
-const KEY = 'hbll-lax-save-4';
+const KEY = 'hbll-lax-save-5';
 let S = null, L = null, TM = {};
 
 // ---------- persistence ----------
