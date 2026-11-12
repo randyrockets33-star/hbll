@@ -1796,7 +1796,7 @@ function pMatches() {
 }
 function viewerHTML() {
   return `<div class="mwrap"><div><div class="rink"><div class="bug" id="vbug"></div><div class="wpbar" id="vwp"></div><canvas id="rink" width="1000" height="470" aria-label="Rink replay"></canvas>
-   <div class="ctl"><button class="btn sm" id="vplay">Pause</button><div class="seg" id="vspd">${['1', '2', '3', '4', '5'].map(k => `<button data-v="${k}" class="${k === '2' ? 'on' : ''}">${k}x</button>`).join('')}<button data-v="hl">Goals only</button></div><button class="btn sm" id="vmode" title="Switch between the top-down rink and the broadcast camera">View: Rink</button><button class="btn sm" id="vdrama" title="Slows to 1x in a close finish">Drama: on</button><button class="btn sm" id="vsnd">Sound: off</button><button class="btn sm" id="vend">Skip to final</button><button class="btn sm" id="vre">Restart</button></div><div class="mut" style="font-size:12px;padding:0 12px 10px;background:var(--bg2)">1x plays a full game in about 7½ minutes, 5x in about 90 seconds. With drama on, a close game drops to 1x for the last three minutes.</div></div>
+   <div class="ctl"><button class="btn sm" id="vplay">Pause</button><div class="seg" id="vspd">${['1', '2', '3', '4', '5'].map(k => `<button data-v="${k}" class="${k === '2' ? 'on' : ''}">${k}x</button>`).join('')}<button data-v="hl">Goals only</button></div><button class="btn sm" id="vmode" title="Switch between the 3D broadcast camera and the top-down rink">View: 3D Broadcast</button><button class="btn sm" id="vdrama" title="Slows to 1x in a close finish">Drama: on</button><button class="btn sm" id="vsnd">Sound: off</button><button class="btn sm" id="vend">Skip to final</button><button class="btn sm" id="vre">Restart</button></div><div class="mut" style="font-size:12px;padding:0 12px 10px;background:var(--bg2)">1x plays a full game in about 7½ minutes, 5x in about 90 seconds. With drama on, a close game drops to 1x for the last three minutes.</div></div>
    <div class="vstats" id="vstats"></div>
    <div id="vbox" style="margin-top:18px"></div></div>
    <div class="card" style="align-self:start;overflow:hidden"><div style="padding:14px 16px 0"><div class="lbl">Play by play</div></div><div class="feed" id="vfeed"></div></div></div>`;
@@ -1914,8 +1914,8 @@ class Viewer {
   bind() {
     $('#vplay').onclick = () => { this.run = !this.run; $('#vplay').textContent = this.run ? 'Pause' : 'Play'; };
     $$('#vspd button').forEach(b => b.onclick = () => { $$('#vspd button').forEach(x => x.classList.toggle('on', x === b)); if (b.dataset.v === 'hl') { this.hl = true; } else { this.hl = false; this.mult = +b.dataset.v; } });
-    $('#vmode').onclick = () => { this.mode = this.mode === 'tv' ? '' : 'tv'; $('#vmode').textContent = 'View: ' + (this.mode === 'tv' ? 'Broadcast (beta)' : 'Rink'); try { localStorage.setItem('hbll-view', this.mode); } catch (e) { } };
-    try { if (localStorage.getItem('hbll-view') === 'tv') { this.mode = 'tv'; $('#vmode').textContent = 'View: Broadcast (beta)'; } } catch (e) { }
+    $('#vmode').onclick = () => { this.mode = this.mode === 'tv' ? '' : 'tv'; $('#vmode').textContent = 'View: ' + (this.mode === 'tv' ? '3D Broadcast' : 'Rink'); try { localStorage.setItem('hbll-view2', this.mode === 'tv' ? 'tv' : 'rink'); } catch (e) { } };
+    { let v = 'tv'; try { v = localStorage.getItem('hbll-view2') || 'tv'; } catch (e) { } this.mode = v === 'rink' ? '' : 'tv'; $('#vmode').textContent = 'View: ' + (this.mode === 'tv' ? '3D Broadcast' : 'Rink'); }
     $('#vdrama').onclick = () => { this.drama = !this.drama; $('#vdrama').textContent = 'Drama: ' + (this.drama ? 'on' : 'off'); };
     $('#vsnd').onclick = () => { SND.toggle(); $('#vsnd').textContent = 'Sound: ' + (SND.on ? 'on' : 'off'); };
     $('#vend').onclick = () => this.seek(this.end + 1);
